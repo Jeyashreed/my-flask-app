@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Welcome</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <h2>Welcome, {{ username }}</h2>
+    <a href="{{ url_for('dashboard') }}">Go to Dashboard</a> |
+    <a href="{{ url_for('logout') }}">Logout</a>
+</body>
+</html>
