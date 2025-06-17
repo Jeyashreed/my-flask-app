@@ -4,32 +4,28 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import smtplib
 from email.message import EmailMessage
 from datetime import datetime
-from dotenv import load_dotenv
 import os
 
-# Load environment variables
-load_dotenv()
-
 app = Flask(__name__)
-app.secret_key = os.getenv('FLASK_SECRET_KEY')
+app.secret_key = 'super-secret-key-123'
 
 # Connect to MySQL
 try:
     db = mysql.connector.connect(
-        host=os.getenv('DB_HOST'),
-        user=os.getenv('DB_USER'),
-        database=os.getenv('DB_NAME')
+        host='localhost',
+        user='root', # Add your MySQL password if applicable
+        database='STUDENT_APP'
     )
     cursor = db.cursor()
     print("Connected to DB")
 except mysql.connector.Error as err:
     print("Database connection error:", err)
 
+
 # Send confirmation email
 def send_confirmation_email(to_email, user_name):
-    sender_email = os.getenv('EMAIL_USER')
-    password = os.getenv('EMAIL_PASS')
-
+    sender_email = "srijeyam23@gmail.com"
+    password = "yddzolpmcaaieqsk"  # Use environment variables in production
     msg = EmailMessage()
     msg['Subject'] = "Welcome!"
     msg['From'] = sender_email
@@ -133,7 +129,6 @@ def add_student():
             VALUES (%s, %s, %s, %s, %s)
         """, (roll_no, name, student_class, created_by, created_on))
         db.commit()
-        flash("Student added successfully.")
     except mysql.connector.Error as e:
         flash(f"DB Error: {e}")
     return redirect('/dashboard')
@@ -159,7 +154,11 @@ def edit_student(roll_no):
     current_name, current_class = result
 
     updated_by = session['email']
-    updated_on = datetime.now() if (new_name != current_name or new_class != current_class) else None
+
+    if new_name != current_name or new_class != current_class:
+        updated_on = datetime.now()
+    else:
+        updated_on = None  # Will translate to NULL in DB
 
     cursor.execute("""
         UPDATE STUDENTS 
@@ -186,7 +185,6 @@ def delete_student(roll_no):
         WHERE ROLL_NO = %s AND CREATED_BY = %s
     """, (session['email'], datetime.now(), roll_no, session['email']))
     db.commit()
-    flash("Student deleted successfully.")
     return redirect('/dashboard')
 
 @app.route('/logout')
@@ -196,4 +194,4 @@ def logout():
     return redirect('/login')
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=10000)
+    app.run(debug=True)
