@@ -7,30 +7,47 @@ from datetime import datetime
 from dotenv import load_dotenv
 import os
 
-# Load environment variables from .env file
+# Load environment variables
 load_dotenv()
+print("DB_USER:", os.getenv("DB_USER"))
+print("DB_PASSWORD:", os.getenv("DB_PASSWORD"))
+
 
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY')
 
-# Connect to MySQL
-try:
-    db = mysql.connector.connect(
-        host=os.getenv('DB_HOST'),
-        user=os.getenv('DB_USER'),
-        password=os.getenv('DB_PASSWORD'),
-        database=os.getenv('DB_NAME')
-    )
-    cursor = db.cursor()
-    print("Connected to DB")
-except mysql.connector.Error as err:
-    print("Database connection error:", err)
+# Global DB connection
+db = None
+cursor = None
 
-# Send confirmation email
+def connect_db():
+    global db, cursor
+    try:
+        db = mysql.connector.connect(
+            host=os.getenv('DB_HOST'),
+            user=os.getenv('DB_USER'),
+            password=os.getenv('DB_PASSWORD'),
+            database=os.getenv('DB_NAME'),
+            port=3306,
+            use_pure=True
+        )
+        cursor = db.cursor()
+        print("✅ Connected to database.")
+    except mysql.connector.Error as err:
+        print("❌ Database connection error:", err)
+
+        cursor = db.cursor()
+        print("✅ Connected to database.")
+    except mysql.connector.Error as err:
+        print("❌ Database connection error:", err)
+
+# Initial DB connection
+connect_db()
+
+# Send email
 def send_confirmation_email(to_email, user_name):
     sender_email = os.getenv('EMAIL_USER')
     password = os.getenv('EMAIL_PASS')
-
     msg = EmailMessage()
     msg['Subject'] = "Welcome!"
     msg['From'] = sender_email
@@ -42,7 +59,7 @@ def send_confirmation_email(to_email, user_name):
             server.login(sender_email, password)
             server.send_message(msg)
     except Exception as e:
-        print("Email sending failed:", e)
+        print("❌ Email sending failed:", e)
 
 @app.route('/')
 def home():
@@ -51,6 +68,12 @@ def home():
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
+        if db is None or not db.is_connected():
+            connect_db()
+            if db is None or not db.is_connected():
+                flash("Database not connected.")
+                return redirect('/signup')
+
         username = request.form['username']
         email = request.form['email']
         password = request.form['password']
@@ -83,6 +106,12 @@ def login():
         email = request.form['email']
         password = request.form['password']
 
+        if db is None or not db.is_connected():
+            connect_db()
+            if db is None or not db.is_connected():
+                flash("Database not connected.")
+                return redirect('/login')
+
         cursor.execute("SELECT USERNAME, PASSWORD FROM USERS WHERE EMAIL = %s", (email,))
         user = cursor.fetchone()
 
@@ -109,11 +138,14 @@ def dashboard():
     if 'email' not in session:
         return redirect('/login')
 
+    if db is None or not db.is_connected():
+        connect_db()
+
     cursor.execute("""
-        SELECT ROLL_NO, NAME, CLASS, CREATED_ON, UPDATED_ON 
+        SELECT ROLL_NO, NAME, CLASS 
         FROM STUDENTS 
-        WHERE CREATED_BY = %s AND IS_ACTIVE = 1
-    """, (session['email'],))
+        WHERE IS_ACTIVE = 1
+    """)
     students = cursor.fetchall()
     return render_template('dashboard.html', username=session['user_name'], students=students)
 
@@ -159,11 +191,7 @@ def edit_student(roll_no):
 
     current_name, current_class = result
     updated_by = session['email']
-
-    if new_name != current_name or new_class != current_class:
-        updated_on = datetime.now()
-    else:
-        updated_on = None
+    updated_on = datetime.now() if new_name != current_name or new_class != current_class else None
 
     cursor.execute("""
         UPDATE STUDENTS 
@@ -172,11 +200,7 @@ def edit_student(roll_no):
     """, (new_name, new_class, updated_by, updated_on, roll_no))
     db.commit()
 
-    if updated_on:
-        flash("Student record updated.")
-    else:
-        flash("No changes detected.")
-
+    flash("Student record updated." if updated_on else "No changes detected.")
     return redirect('/dashboard')
 
 @app.route('/delete_student/<roll_no>')

@@ -1,70 +1,41 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-
     <title>Student Dashboard</title>
 </head>
 <body>
     <h2>Welcome, {{ username }}</h2>
-    <a href="{{ url_for('logout') }}">Logout</a>
+    <a href="/logout">Logout</a>
 
-    <hr>
-
-    <!-- Flash Messages -->
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        <ul>
-          {% for msg in messages %}
-            <li style="color: red;">{{ msg }}</li>
-          {% endfor %}
-        </ul>
-      {% endif %}
-    {% endwith %}
-
-    <!-- Add New Student -->
-    <h3>Add New Student</h3>
-    <form action="{{ url_for('add_student') }}" method="POST">
-        <input type="text" name="roll_no" placeholder="Roll No" required>
-        <input type="text" name="name" placeholder="Name" required>
-        <input type="text" name="student_class" placeholder="Class" required>
-        <button type="submit">Add Student</button>
-    </form>
-
-    <hr>
-
-    <!-- Student List -->
-    <h3>Student List</h3>
-    {% if students %}
-    <table border="1" cellpadding="5">
-        <thead>
-            <tr>
-                <th>Roll No</th>
-                <th>Name</th>
-                <th>Class</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
+    <h3>All Active Students</h3>
+    <table border="1">
+        <tr>
+            <th>Roll No</th>
+            <th>Name</th>
+            <th>Class</th>
+            <th>Actions</th>
+        </tr>
         {% for student in students %}
-            <tr>
-                <form action="{{ url_for('edit_student', roll_no=student[0]) }}" method="POST">
-                    <td>{{ student[0] }}</td>
-                    <td><input type="text" name="name" value="{{ student[1] }}" required></td>
-                    <td><input type="text" name="student_class" value="{{ student[2] }}" required></td>
-                    <td>
-                        <button type="submit">Update</button>
-                        <a href="{{ url_for('delete_student', roll_no=student[0]) }}" onclick="return confirm('Delete this student?');">Delete</a>
-                    </td>
-                </form>
-            </tr>
+        <tr>
+            <form action="/edit_student/{{ student[0] }}" method="post">
+                <td>{{ student[0] }}</td>
+                <td><input type="text" name="name" value="{{ student[1] }}"></td>
+                <td><input type="text" name="student_class" value="{{ student[2] }}"></td>
+                <td>
+                    <input type="submit" value="Update">
+                    <a href="/delete_student/{{ student[0] }}">Delete</a>
+                </td>
+            </form>
+        </tr>
         {% endfor %}
-        </tbody>
     </table>
-    {% else %}
-        <p>No students found.</p>
-    {% endif %}
+
+    <h3>Add New Student</h3>
+    <form action="/add_student" method="post">
+        Roll No: <input type="text" name="roll_no" required><br>
+        Name: <input type="text" name="name" required><br>
+        Class: <input type="text" name="student_class" required><br>
+        <input type="submit" value="Add Student">
+    </form>
 </body>
 </html>

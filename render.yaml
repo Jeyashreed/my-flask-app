@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: flask-registration-app
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    envVars:
+      - key: FLASK_SECRET_KEY
+        value: super-secret-key-123
+      - key: DB_HOST
+        value: 157.51.1.195
+      - key: DB_USER
+        value: sri
+      - key: DB_PASSWORD
+        value: Athiyan@01
+      - key: DB_NAME
+        value: student_app
+      - key: EMAIL_USER
+        value: srijeyam23@gmail.com
+      - key: EMAIL_PASS
+        value: yddzolpmcaaieqsk
